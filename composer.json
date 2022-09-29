@@ -1,0 +1,22 @@
+{
+    "name": "meteosource/meteosource_php",
+    "description": "Python wrapper library for global weather API - hyperlocal weather forecasts",
+    "keywords": [
+    "weather",
+    "meteosource"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/Meteosource/metesource_php",
+    "require": {
+        "php": ">=7.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9"
+    },
+    "autoload": {
+        "classmap": [
+            "src/"
+        ]
+    }
+}
