@@ -1,6 +1,6 @@
 {
     "name": "meteosource/meteosource_php",
-    "description": "Python wrapper library for global weather API - hyperlocal weather forecasts",
+    "description": "PHP wrapper library for global weather API - hyperlocal weather forecasts",
     "keywords": [
     "weather",
     "meteosource"
