@@ -12,8 +12,10 @@ use Exception;
  * To use this class you have to obtain your own API key at https://www.meteosource.com/pricing
  * 
  * Class provides methods to fetch:
- *  - weather forecast data for any place or coordinates - getPointForecast() 
- *  - archive weather data for any place or coordinates - getTimeMachine() 
+ *  - weather forecast data for any place or coordinates - getPointForecast()
+ *  - archive weather data for any place or coordinates - getTimeMachine()
+ *  - air quality data for any place or coordinates - getAirQuality()
+ *  - places by name, prefix or coordinates - findPlaces(), findPlacesPrefix(), getNearestPlace()
  */
 class Meteosource
 {
@@ -171,6 +173,87 @@ class Meteosource
         }
         
         return new TimeMachine($timeMachineData, $timezone);
+    }
+
+    /**
+     * Get air quality data for given place
+     * Parameters correspond to air_quality API endpoint parameters documented at https://www.meteosource.com/documentation#air_quality
+     *
+     * @param string $placeId Identifier of place
+     * @param float $lat Latitude in format 12N, 12.3N, 12.3, or 13S, 13.2S, -13.4
+     * @param float $lon Longitude in format 12E, 12.3E, 12.3, or 13W, 13.2W, -13.4
+     * @param string $timezone Timezone to be used for the date fields. Default is "UTC"
+     * @param string $lang Language of text summaries. Default is "en"
+     * @return AirQuality
+     *
+     * @throws InvalidArgumentException
+     */
+
+    public function getAirQuality(?string $placeId = null, ?float $lat = null, ?float $lon = null, ?string $timezone = 'UTC', ?string $lang = 'en'): AirQuality
+    {
+        if($placeId === null && ($lat === null || $lon === null)) {
+            throw new InvalidArgumentException('No placeId or both lat and lon specified.');
+        }
+        if($placeId !== null && ($lat !== null || $lon !== null)) {
+            throw new InvalidArgumentException('When placeId is specified, both lat and lon have to be null.');
+        }
+        $requestParams = [
+                        'place_id' => $placeId,
+                        'lat' => $lat,
+                        'lon' => $lon,
+                        'language' => $lang,
+                        'timezone' => 'UTC',
+                        ];
+
+        $url = $this->buildUrl('air_quality', $requestParams);
+        $data = $this->getData($url);
+        return new AirQuality($data, $timezone);
+    }
+
+    /**
+     * Search for places by name or ZIP code
+     * Parameters correspond to find_places API endpoint parameters documented at https://www.meteosource.com/documentation#find_places
+     *
+     * @param string $text Place name or ZIP code to search for
+     * @param string $lang Language of the place names. Default is "en"
+     * @return array Array of place objects
+     */
+
+    public function findPlaces(string $text, ?string $lang = 'en'): array
+    {
+        $url = $this->buildUrl('find_places', ['text' => $text, 'language' => $lang]);
+        return $this->getData($url);
+    }
+
+    /**
+     * Search for places whose name begins with given prefix, useful for autocomplete
+     * Parameters correspond to find_places_prefix API endpoint parameters documented at https://www.meteosource.com/documentation#find_places_prefix
+     *
+     * @param string $text Beginning of the place name to search for
+     * @param string $lang Language of the place names. Default is "en"
+     * @return array Array of place objects
+     */
+
+    public function findPlacesPrefix(string $text, ?string $lang = 'en'): array
+    {
+        $url = $this->buildUrl('find_places_prefix', ['text' => $text, 'language' => $lang]);
+        return $this->getData($url);
+    }
+
+    /**
+     * Get the nearest named place for given coordinates
+     * Parameters correspond to nearest_place API endpoint parameters documented at https://www.meteosource.com/documentation#nearest_place
+     *
+     * @param float $lat Latitude in format 12N, 12.3N, 12.3, or 13S, 13.2S, -13.4
+     * @param float $lon Longitude in format 12E, 12.3E, 12.3, or 13W, 13.2W, -13.4
+     * @param string $lang Language of the place name. Default is "en"
+     * @return object Place object
+     */
+
+    public function getNearestPlace(float $lat, float $lon, ?string $lang = 'en'): object
+    {
+        $url = $this->buildUrl('nearest_place', ['lat' => $lat, 'lon' => $lon, 'language' => $lang]);
+        return $this->getData($url);
     }
 
     private function buildUrl(string $endpoint, array $data): string
