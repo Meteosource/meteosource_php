@@ -157,7 +157,7 @@ class Meteosource
             try {
                 $data = $this->getData($url);
             } catch (Exception $ex) {
-                echo "Problem with downloading " . $date . "\n";
+                throw new MeteosourceException("Problem with downloading " . $date, 0, $ex);
             }
 
             if(!$timeMachineData) {
@@ -179,13 +179,22 @@ class Meteosource
         return $this->host . "/api/" . self::API_VERSION . "/" . $this->tier . "/" . $endpoint . "?" . http_build_query($data);
     }
 
-    private function getData(string $url): ?object
+    /**
+     * Fetch and decode data from given url
+     *
+     * @param string $url
+     * @return object|array Decoded JSON response
+     *
+     * @throws MeteosourceException
+     */
+    private function getData(string $url)
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_TIMEOUT,10);
         $data = curl_exec($ch);
+        $curlError = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
@@ -193,6 +202,8 @@ class Meteosource
             return json_decode($data);
 
         if(substr((string)$httpCode, 0, 1) == '4' || substr((string)$httpCode, 0, 1) == '5')
-            throw new Exception('Server returned ' . $httpCode . " with message " . $data);
+            throw new MeteosourceException('Server returned ' . $httpCode . " with message " . $data);
+
+        throw new MeteosourceException('Request failed with HTTP code ' . $httpCode . ($curlError ? " and error " . $curlError : ""));
     }
 }
