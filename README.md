@@ -86,8 +86,7 @@ $airQuality = $meteosource->getAirQuality(
     'london',  // ID of the place, you can specify lat+lon instead
     null,  // Latitude of the point
     null,  // Longitude of the point
-    'UTC',  // Defaults to 'UTC', regardless of the point location
-    'en'  // Defaults to 'en'
+    'UTC'  // Defaults to 'UTC', regardless of the point location
 );
 
 echo $airQuality;  // <AirQuality for lat: 51.50853, lon: -0.12574>

@@ -189,7 +189,7 @@ class Meteosource
      * @throws InvalidArgumentException
      */
 
-    public function getAirQuality(?string $placeId = null, ?float $lat = null, ?float $lon = null, ?string $timezone = 'UTC', ?string $lang = 'en'): AirQuality
+    public function getAirQuality(?string $placeId = null, ?float $lat = null, ?float $lon = null, ?string $timezone = 'UTC'): AirQuality
     {
         if($placeId === null && ($lat === null || $lon === null)) {
             throw new InvalidArgumentException('No placeId or both lat and lon specified.');
@@ -197,11 +197,12 @@ class Meteosource
         if($placeId !== null && ($lat !== null || $lon !== null)) {
             throw new InvalidArgumentException('When placeId is specified, both lat and lon have to be null.');
         }
+        // Note: the air_quality endpoint does not accept a language
+        // parameter (its data is numeric only), unlike the other endpoints.
         $requestParams = [
                         'place_id' => $placeId,
                         'lat' => $lat,
                         'lon' => $lon,
-                        'language' => $lang,
                         'timezone' => 'UTC',
                         ];
 
