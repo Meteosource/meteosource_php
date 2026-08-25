@@ -4,13 +4,18 @@ use PHPUnit\Framework\TestCase;
 
 final class ForecastTest extends TestCase
 {
+    private function createMeteosource(): Meteosource\Meteosource
+    {
+        return new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY') ?: 'dummy-api-key', 'flexi');
+    }
+
     /**
      * @test
      */
 
     public function placeid_or_latlon_have_to_be_specified(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $meteosource = $this->createMeteosource();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('No placeId or both lat and lon specified.');
@@ -23,7 +28,7 @@ final class ForecastTest extends TestCase
 
     public function only_one_of_placeid_or_latlon_can_be_specified(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $meteosource = $this->createMeteosource();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('When placeId is specified, both lat and lon have to be null.');
@@ -74,6 +79,23 @@ final class ForecastTest extends TestCase
 
         $this->expectException(OutOfBoundsException::class);
         $pointForecast->hourly[new DateTime('2022-07-07T10:00:00')];
+    }
+
+    /**
+     * @test
+     */
+    public function forecast_first_timestep_indexing(): void
+    {
+        $stubMeteosource = $this->createStub(Meteosource\Meteosource::class);
+        $stubMeteosource->method('getPointForecast')
+             ->willReturn(new Meteosource\Forecast(json_decode(file_get_contents(__DIR__ . '/sampleForecast.json')), 'UTC'));
+
+        $pointForecast = $stubMeteosource->getPointForecast('london', null, null, null, null);
+
+        // Index 0 has to be accessible also by date string and DateTime
+        $this->assertEquals(18.8, $pointForecast->hourly[0]->feels_like);
+        $this->assertEquals(18.8, $pointForecast->hourly['2021-09-08T09:00:00']->feels_like);
+        $this->assertEquals(18.8, $pointForecast->hourly[new DateTime('2021-09-08T09:00:00')]->feels_like);
     }
 
     /**

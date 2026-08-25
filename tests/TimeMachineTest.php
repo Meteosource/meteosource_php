@@ -4,13 +4,25 @@ use PHPUnit\Framework\TestCase;
 
 final class TimeMachineTest extends TestCase
 {
+    private function createMeteosource(): Meteosource\Meteosource
+    {
+        return new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY') ?: 'dummy-api-key', 'flexi');
+    }
+
+    private function skipWithoutApiKey(): void
+    {
+        if(getenv('METEOSOURCE_API_KEY') === false) {
+            $this->markTestSkipped('METEOSOURCE_API_KEY environment variable is not set.');
+        }
+    }
+
     /**
      * @test
      */
 
     public function placeid_or_latlon_have_to_be_specified(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $meteosource = $this->createMeteosource();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('No placeId or both lat and lon specified.');
@@ -23,7 +35,7 @@ final class TimeMachineTest extends TestCase
 
     public function only_one_of_placeid_or_latlon_can_be_specified(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $meteosource = $this->createMeteosource();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('When placeId is specified, both lat and lon have to be null.');
@@ -35,7 +47,7 @@ final class TimeMachineTest extends TestCase
      */
     public function date_or_date_range_have_to_be_specified(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $meteosource = $this->createMeteosource();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Date or both DateFrom and DateTo have to specified.');
@@ -47,7 +59,7 @@ final class TimeMachineTest extends TestCase
      */
     public function only_one_of_date_or_date_range_can_be_specified(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $meteosource = $this->createMeteosource();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('When Date is specified both DateFrom and DateTo have to be null.');
@@ -75,9 +87,27 @@ final class TimeMachineTest extends TestCase
     /**
      * @test
      */
+    public function timemachine_first_timestep_indexing(): void
+    {
+        $stubMeteosource = $this->createStub(Meteosource\Meteosource::class);
+        $stubMeteosource->method('getTimeMachine')
+             ->willReturn(new Meteosource\TimeMachine(json_decode(file_get_contents(__DIR__ . '/sampleTimeMachine.json')), 'UTC'));
+
+        $timeMachine = $stubMeteosource->getTimeMachine('2020-10-01', null, null, 'london', null);
+
+        // Index 0 has to be accessible also by date string and DateTime
+        $this->assertEquals($timeMachine->data[0]->date, '2020-10-01T00:00:00');
+        $this->assertEquals($timeMachine->data[0]->temperature, $timeMachine->data['2020-10-01T00:00:00']->temperature);
+        $this->assertEquals($timeMachine->data[0]->temperature, $timeMachine->data[new DateTime('2020-10-01T00:00:00')]->temperature);
+    }
+
+    /**
+     * @test
+     */
     public function timemachine_indexing(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $this->skipWithoutApiKey();
+        $meteosource = $this->createMeteosource();
         $timeMachine = $meteosource->getTimeMachine(['2020-10-01', '2020-10-02', '2020-11-03'], null, null, 'london', null);
         $this->assertEquals(72, count($timeMachine->data));
 
@@ -93,8 +123,10 @@ final class TimeMachineTest extends TestCase
      */
     public function timemachine_one_of_dates_not_available(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
-        $this->expectOutputString("Problem with downloading 1980-10-10\n");
+        $this->skipWithoutApiKey();
+        $meteosource = $this->createMeteosource();
+        $this->expectException(Meteosource\MeteosourceException::class);
+        $this->expectExceptionMessage('Problem with downloading 1980-10-10');
         $timeMachine = $meteosource->getTimeMachine(['2020-09-01', '1980-10-10', '2020-10-01'], null, null, 'london', null);
     }
 
@@ -104,7 +136,8 @@ final class TimeMachineTest extends TestCase
      */
     public function timemachine_daylight_saving_time(): void
     {
-        $meteosource = new Meteosource\Meteosource(getenv('METEOSOURCE_API_KEY'), 'flexi');
+        $this->skipWithoutApiKey();
+        $meteosource = $this->createMeteosource();
         $timeMachine = $meteosource->getTimeMachine(['2021-10-30', '2021-10-31', '2021-11-01'], null, null, 'london', null, null, 'Europe/London');
         $this->assertEquals('2021-10-30T01:00:00', $timeMachine->data[0]->date);
         $this->assertEquals('2021-10-31T00:00:00', $timeMachine->data[23]->date);

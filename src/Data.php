@@ -46,7 +46,7 @@ abstract class Data implements \ArrayAccess, \Iterator, \Countable
         }
         if (is_string($offset)) {
             $index = array_search($offset, $this->datesStr);
-            if($index)
+            if($index !== false)
         	   return $this->data[$index];
             throw new \OutOfBoundsException;
         }
@@ -55,7 +55,7 @@ abstract class Data implements \ArrayAccess, \Iterator, \Countable
                 $offset->setTimezone(new DateTimeZone($this->timezone));
             }
             $index = array_search($offset, $this->datesDateTime);
-            if($index)
+            if($index !== false)
         	   return $this->data[$index];
             throw new \OutOfBoundsException;
         }

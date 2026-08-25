@@ -76,6 +76,41 @@ Note, that the historical weather data are always retrieved for full UTC days. I
 
 If you pass `array` of dates to `date` parameter, they days will be inserted into the inner structures in the order they are being iterated over. This affects time indexing by integer (see below). An API request is made for each day, even when you specify a date range.
 
+### Air quality
+To get air pollution data for given place, use `getAirQuality()` method. Just like with `getPointForecast()`, you have to specify either the coordinates of the place (`lat` + `lon`) or the `place_id`:
+
+```php
+<?php
+// Get the air quality for given point
+$airQuality = $meteosource->getAirQuality(
+    'london',  // ID of the place, you can specify lat+lon instead
+    null,  // Latitude of the point
+    null,  // Longitude of the point
+    'UTC'  // Defaults to 'UTC', regardless of the point location
+);
+
+echo $airQuality;  // <AirQuality for lat: 51.50853, lon: -0.12574>
+echo $airQuality->data[0]->pm10;  // Hourly timesteps support the same time indexing as forecast data
+```
+
+### Finding places
+To search for places by name (or ZIP code), use `findPlaces()`. For autocomplete forms there is `findPlacesPrefix()`, which matches the beginning of the words. To get the nearest named place for given GPS coordinates, use `getNearestPlace()`. These methods return the decoded API response - an `array` of place objects (a single place object for `getNearestPlace()`) with attributes `name`, `place_id`, `adm_area1`, `adm_area2`, `country`, `lat`, `lon`, `timezone` and `type`:
+
+```php
+<?php
+// Search for places named "london"
+$places = $meteosource->findPlaces('london');
+echo $places[0]->place_id;  // london
+
+// Prefix search, useful for autocomplete
+$places = $meteosource->findPlacesPrefix('lond', 'en');
+
+// Get the nearest named place for coordinates
+$place = $meteosource->getNearestPlace(51.50853, -0.1257);
+echo $place->name;  // London
+echo $place->timezone;  // Europe/London
+```
+
 ## Working with the weather data
 All of the meteosource's data objects have overloaded `__toString()` methods, so you can `echo` the objects to get useful information about them:
 ```php
@@ -218,9 +253,9 @@ $forecast->current->wind->speed;
 ```
 
 ### Tests
-The unit tests are written using `PHPUnit`. You need to provide your actual API key using environment variable. To run the tests, use:
+The unit tests are written using `PHPUnit`. The tests that call the live API need your actual API key provided using environment variable - they are skipped when the variable is not set. To run the tests, use:
 ```bash
-# Change this to your actual API key
+# Change this to your actual API key (optional - live API tests are skipped without it)
 export METEOSOURCE_API_KEY='abcdefghijklmnopqrstuvwxyz0123456789ABCD'
 vendor/bin/phpunit tests
 ```
